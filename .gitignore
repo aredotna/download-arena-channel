@@ -1,0 +1,5 @@
+.env
+.DS_Store
+node_modules
+/downloads/*
+!/downloads/.gitkeep
