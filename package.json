@@ -6,6 +6,7 @@
   "dependencies": {
     "axios": "^0.16.1",
     "mime": "^1.3.4",
-    "parameterize": "^0.0.7"
+    "parameterize": "^0.0.7",
+    "ramda": "^0.24.1"
   }
 }
