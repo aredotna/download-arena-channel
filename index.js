@@ -4,6 +4,7 @@ const axios = require('axios');
 const parameterize = require('parameterize');
 const mime = require('mime');
 const path = require('path');
+const slugify = require('slugify');
 
 const per = 100; // Content pagination limit
 const chunkBy = 10; // N of images to download simultaneously
@@ -34,7 +35,7 @@ const channel = (slug, dir) => {
           const filename = path.join(dir, `${title}.${ext}`);
           console.log(`Writing <${filename}>`);
 
-          sources.push(block.source.url);
+          if (block.source && block.source.url) sources.push(block.source.url);
           fs.writeFileSync(filename, data);
         })
         .catch(err => {
@@ -46,11 +47,12 @@ const channel = (slug, dir) => {
       const filename = block.generated_title === 'Untitled' ?
         (block.generated_title + untitledCount++) :
         block.generated_title;
+      const filenameSlug = slugify(filename);
 
-      const output = path.join(dir, `${filename}.md`);
+      const output = path.join(dir, `${filenameSlug}.md`);
       console.log(`Writing <${output}>`);
 
-      sources.push(block.source.url);
+      if (block.source && block.source.url) sources.push(block.source.url);
       return fs.writeFileSync(output, block.content);
     },
 
@@ -75,8 +77,8 @@ module.exports = (slug, dir) => {
       return R
         .splitEvery(chunkBy, contents)
         .reduce((lastPromise, blocks) => {
-          return lastPromise.then(() => blocks)
-        }, Promise.resolve());
+          return lastPromise.then((lastBlocks) => lastBlocks.concat(blocks))
+        }, Promise.resolve([]));
     })
     .then(blocks => {
       return Promise.all(blocks.map(block => {
