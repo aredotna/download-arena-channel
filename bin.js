@@ -1,6 +1,8 @@
 const minimist = require('minimist');
 const path = require('path');
 const fs = require('fs');
+const zipFolder = require('zip-folder');
+const rmrf = require('rimraf');
 
 const app = require('.');
 
@@ -34,6 +36,12 @@ app(slug, dir)
     }
 
     if (argv.zip) {
-      console.log('zipping')
+      const archive = `${dir}.zip`;
+      console.log(`Compressing into ${archive}...`);
+      zipFolder(dir, archive, err => {
+        if (err) return console.error('Something went wrong while compressing');
+
+        rmrf.sync(dir);
+      });
     }
   })
