@@ -8,11 +8,9 @@ const path = require('path');
 const per = 100; // Content pagination limit
 const chunkBy = 10; // N of images to download simultaneously
 
-const channel = slug => {
-  const dir = path.join(process.cwd(), slug);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-
+const channel = (slug, dir) => {
   let untitledCount = 1
+  const sources = [];
   
   return {
     thumb: () => {
@@ -36,6 +34,7 @@ const channel = slug => {
           const filename = path.join(dir, `${title}.${ext}`);
           console.log(`Writing <${filename}>`);
 
+          sources.push(block.source.url);
           fs.writeFileSync(filename, data);
         })
         .catch(err => {
@@ -48,14 +47,19 @@ const channel = slug => {
         (block.generated_title + untitledCount++) :
         block.generated_title;
 
-      console.log(`Writing <${filename}.md>`);
-      return fs.writeFileSync(path.join(dir, `${filename}.md`), block.content);
+      const output = path.join(dir, `${filename}.md`);
+      console.log(`Writing <${output}>`);
+
+      sources.push(block.source.url);
+      return fs.writeFileSync(output, block.content);
     },
+
+    getSources: () => sources,
   }
 };
 
-module.exports = (slug, opts) => {
-  const client = channel(slug);
+module.exports = (slug, dir) => {
+  const client = channel(slug, dir);
 
   return client
     .thumb()
@@ -82,6 +86,7 @@ module.exports = (slug, opts) => {
         return console.log(`Block ${block.id} not downloaded because it does not have saveable content`);
       }));
     })
+    .then(() => client.getSources())
     .catch(err => {
       console.error(`An error occurred: ${err.stack}`);
     });
