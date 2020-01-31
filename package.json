@@ -2,10 +2,12 @@
   "name": "download-arena-channel",
   "version": "1.0.0",
   "main": "index.js",
+  "bin": "bin.js",
   "license": "MIT",
   "dependencies": {
     "axios": "^0.16.1",
     "mime": "^1.3.4",
+    "minimist": "^1.2.0",
     "parameterize": "^0.0.7",
     "ramda": "^0.24.1"
   }
