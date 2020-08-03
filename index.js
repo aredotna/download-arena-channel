@@ -3,11 +3,13 @@ const fs = require('fs');
 const axios = require('axios');
 const parameterize = require('parameterize');
 const mime = require('mime');
+const chalk = require('chalk')
 
 const args = process.argv.slice(2);
 const slug = args[0];
 const per = 100; // Content pagination limit
 const chunkBy = 10; // N of images to download simultaneously
+let count = 0;
 
 const channel = slug => ({
   thumb: () => {
@@ -17,13 +19,22 @@ const channel = slug => ({
 
   page: ({ page, per }) => {
     console.log(`Fetching page <${page}>`);
-    return axios.get(`https://api.are.na/v2/channels/${slug}/contents?page=${page}&per=${per}`);
+    return axios.get(`https://api.are.na/v2/channels/${slug}/contents?page=${page}&per=${per}`).catch(err => {
+      console.error(`Failed to download the page <${page}>: ${err.stack}`);
+    });
   },
 
   block: block => {
-    if (!block.image) return console.log(`Block ${block.id} not downloaded because it does not have an image`);
+    count = count + 1
 
-    console.log(`Downloading <${block.image.original.url}>`);
+    console.log(chalk.green(`Download #${count}: ${block.id}`))
+
+    if (!block.image) {
+      console.log(`Block ${block.id} not downloaded because it does not have an image`)
+      return Promise.resolve()
+    };
+
+    console.log(chalk.grey(`Downloading <${block.id}:${block.image.original.url}>`));
 
     const dir = `./downloads/${slug}`;
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
@@ -33,13 +44,13 @@ const channel = slug => ({
       .then(({ data }) => {
         const title = block.title ? parameterize(block.title) : block.id;
         const ext = mime.extension(block.image.content_type);
-        const filename = `${dir}/${title}.${ext}`;
-        console.log(`Writing <${filename}>`);
+        const filename = `${dir}/${block.id}_${title}.${ext}`;
+        console.log(chalk.grey(`Writing <${filename}>`));
 
         fs.writeFileSync(filename, data);
       })
       .catch(err => {
-        console.error(`Failed to download the block <${block.id}>: ${err.stack}`);
+        console.error(chalk.redBright(`Failed to download the block <${block.id}>: ${err.stack}`));
       });
   },
 });
@@ -50,7 +61,7 @@ client
   .thumb()
   .then(({ data: { title, length } }) => {
     const numberOfPages = Math.ceil(length / per);
-    console.log(`The channel <${title}> has ${length} blocks. Proceeding to download...`);
+    console.log(chalk.greenBright(`The channel <${title}> has ${length} blocks. Proceeding to download...`));
     const request = i => client.page({ page: i + 1, per });
     return Promise.all(R.times(request, numberOfPages));
   })
@@ -64,5 +75,5 @@ client
       }, Promise.resolve());
   })
   .catch(err => {
-    console.error(`An error occurred: ${err.stack}`);
+    console.error(chalk.redBright(`An error occurred: ${err.stack}`));
   });
